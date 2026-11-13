@@ -2,7 +2,7 @@
 
 Deep learning on the public **MMOTU** ovarian ultrasound dataset: a **U-Net** that outlines the lesion and a **ResNet18** that sorts each image into one of 8 categories (7 tumour types plus normal ovary). Both models sit behind a **Streamlit** app that overlays the segmentation, shows class probabilities and exports a PDF.
 
-**Live demo:** https://mmotu-ovarian-diagnosis-gsirjjruq2meykdusnwuj5.streamlit.app/ (free hosting, so the first load can take up to a minute; try one of the sample images).
+**Live demo:** https://ovarian-tumor-diagnosis.streamlit.app/ (free hosting, so the first load can take up to a minute; try one of the sample images).
 
 > ⚠️ **Research and educational project.** Not validated for clinical use and not a diagnostic tool.
 
