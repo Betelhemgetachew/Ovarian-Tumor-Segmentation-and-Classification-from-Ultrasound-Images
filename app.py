@@ -30,44 +30,58 @@ st.set_page_config(
 # =========================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
-html, body, [class*="css"], .stMarkdown, .stText, button, input, textarea { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+:root { --bg:#121a24; --panel:#1a2431; --line:#2b3848; --ink:#e8edf3; --muted:#9aa8b8; --accent:#d98bb0; --accent-soft:#3a2633; }
+html, body, .stMarkdown, .stText, button, input, textarea, label { font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; }
+h1, h2, h3, h4, .class-name, .num, .brand { font-family: 'Sora', system-ui, sans-serif; }
 #MainMenu, footer, [data-testid="stToolbar"] { visibility: hidden; }
-.block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 1200px; }
-h1, h2, h3, h4 { letter-spacing: -0.01em; }
+.block-container { padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1280px; }
+[data-testid="stSidebar"] { background: #0e151e; border-right: 1px solid var(--line); }
 
-.app-head h1 { font-size: 1.7rem; font-weight: 700; margin: 0; color: #101828; }
-.app-head p { color: #667085; margin: 0.25rem 0 0; }
-.notice { background: #fdf3e1; border: 1px solid #f1d9a7; border-left: 3px solid #b7791f; color: #7a5214;
-          border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.86rem; margin: 1rem 0 1.5rem; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+          border-bottom: 1px solid var(--line); padding-bottom: 0.9rem; margin-bottom: 1.2rem; }
+.brand { display: flex; align-items: center; gap: 0.7rem; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 1.25rem; font-weight: 600; margin: 0; padding: 0; color: var(--ink); }
+.brand p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.notice { color: #f0c987; font-size: 0.82rem; border: 1px solid #5a4724; background: #2a2418; border-radius: 6px; padding: 0.35rem 0.7rem; }
 
-.card { background: #fff; border: 1px solid #e4e7ec; border-radius: 10px; padding: 1.1rem 1.25rem;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.05); height: 100%; }
-.card h4 { margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 600; color: #101828; }
-.label { font-size: 0.8rem; font-weight: 500; color: #475467; }
-.class-name { font-size: 1.6rem; font-weight: 700; line-height: 1.25; margin: 0.2rem 0 0.4rem; color: #101828; }
-.tag { display: inline-block; border-radius: 999px; padding: 0.15rem 0.65rem; font-size: 0.78rem; font-weight: 600; }
-.tag-benign { background: #e7f4ec; color: #2f855a; }
-.tag-malignant { background: #fdeceb; color: #c0392b; }
-.tag-normal { background: #eaf1fe; color: #2563eb; }
-.tag-low { background: #fdf3e1; color: #b7791f; }
-.big { font-size: 2rem; font-weight: 700; color: #101828; font-variant-numeric: tabular-nums; }
-.desc { color: #475467; font-size: 0.92rem; margin-top: 0.75rem; line-height: 1.55; }
+.viewer { position: relative; background: #05080c; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.viewer img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; }
+.viewer .corner { position: absolute; left: 0.7rem; bottom: 0.55rem; font-size: 0.78rem; color: #c7d0db;
+                  background: rgba(5,8,12,0.7); padding: 0.15rem 0.45rem; border-radius: 3px; }
+.viewer.empty-view { aspect-ratio: 4 / 3; display: grid; place-items: center; text-align: center; padding: 2rem;
+                     background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+                     background-size: 48px 48px; background-position: center; }
+.empty-view .msg { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1.1rem 1.4rem; max-width: 26rem; color: var(--muted); line-height: 1.55; }
+.empty-view .msg b { color: var(--ink); display: block; margin-bottom: 0.35rem; font-size: 1rem; }
 
-.prob { display: grid; grid-template-columns: 12.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; margin: 0.45rem 0; font-size: 0.88rem; }
-.prob .name { color: #101828; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.prob .track { background: #f2f4f7; border-radius: 99px; height: 8px; overflow: hidden; }
-.prob .fill { height: 8px; border-radius: 99px; background: #0e6e6a; }
-.prob.top .name { font-weight: 600; }
-.prob .val { text-align: right; color: #475467; font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1.1rem 1.2rem; margin-bottom: 0.9rem; }
+.panel h4 { margin: 0 0 0.7rem; padding: 0; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+.label { font-size: 0.8rem; color: var(--muted); }
+.class-name { font-size: 1.45rem; font-weight: 600; line-height: 1.25; margin: 0.15rem 0 0.55rem; color: var(--ink); }
+.tag { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; }
+.tag::before { content: ""; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: currentColor; }
+.tag-benign { color: #7fd1ae; } .tag-malignant { color: #ff8f80; } .tag-normal { color: #8cc4f0; } .tag-low { color: #f0c987; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+.stats > div { border-top: 1px solid var(--line); padding-top: 0.6rem; }
+.num { font-size: 1.7rem; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.desc { color: var(--muted); font-size: 0.9rem; margin-top: 0.8rem; line-height: 1.55; }
+.fine { color: #7d8a9b; font-size: 0.78rem; margin-top: 0.5rem; }
 
-.figure img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 8px; border: 1px solid #e4e7ec; background: #000; }
-.figure .cap { font-size: 0.82rem; color: #667085; margin-top: 0.4rem; }
-.empty { border: 1px dashed #d0d5dd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; color: #475467; background: #fff; }
-.empty b { color: #101828; }
-.foot { color: #98a2b3; font-size: 0.8rem; margin-top: 3rem; border-top: 1px solid #e4e7ec; padding-top: 1rem; }
-.stDownloadButton button, .stButton button { border-radius: 8px; font-weight: 600; }
-@media (max-width: 640px) { .prob { grid-template-columns: 9rem 1fr 3rem; font-size: 0.82rem; } .class-name { font-size: 1.35rem; } .big { font-size: 1.6rem; } }
+.prob { margin: 0.55rem 0; font-size: 0.86rem; }
+.prob .row { display: flex; justify-content: space-between; color: var(--muted); margin-bottom: 0.2rem; }
+.prob .val { font-variant-numeric: tabular-nums; }
+.prob .track { background: #253141; height: 6px; border-radius: 3px; overflow: hidden; }
+.prob .fill { display: block; height: 6px; border-radius: 3px; background: #5d6b7d; }
+.prob.top .row { color: var(--ink); font-weight: 700; }
+.prob.top .fill { background: var(--accent); }
+
+.stTabs [data-baseweb="tab-list"] { gap: 0.25rem; }
+.stTabs [data-baseweb="tab"] { font-family: 'Sora', sans-serif; font-size: 0.85rem; }
+.stDownloadButton button { border-radius: 6px; font-weight: 700; color: #22121b !important; }
+.foot { color: #7d8a9b; font-size: 0.8rem; margin-top: 2.5rem; border-top: 1px solid var(--line); padding-top: 0.9rem; }
+@media (max-width: 640px) { .class-name { font-size: 1.25rem; } .num { font-size: 1.4rem; } .notice { width: 100%; } }
 </style>
 """, unsafe_allow_html=True)
 
@@ -276,7 +290,7 @@ def to_data_uri(img):
 
 
 def figure(img, caption):
-    st.markdown(f'<div class="figure"><img src="{to_data_uri(img)}" alt="{caption}"><div class="cap">{caption}</div></div>',
+    st.markdown(f'<div class="viewer"><img src="{to_data_uri(img)}" alt="{caption}"><span class="corner">{caption}</span></div>',
                 unsafe_allow_html=True)
 
 
@@ -294,11 +308,13 @@ def analyse(image_bytes, threshold):
 # 6. Layout
 # =========================
 st.markdown("""
-<div class="app-head">
-  <h1>Ovarian ultrasound analysis</h1>
-  <p>Lesion segmentation (U-Net) and tumour classification (ResNet18) on 2D ultrasound images.</p>
+<div class="topbar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M4 30 A19 19 0 0 1 30 30" fill="none" stroke="#d98bb0" stroke-width="2"/><path d="M8 30 A13 13 0 0 1 26 30" fill="none" stroke="#d98bb0" stroke-width="2" opacity=".6"/><path d="M12 30 A7 7 0 0 1 22 30" fill="none" stroke="#d98bb0" stroke-width="2" opacity=".35"/><path d="M17 30 L5 6 M17 30 L29 6" stroke="#2b3848" stroke-width="1.5"/></svg>
+    <div><h1>Ovarian ultrasound analysis</h1><p>Lesion segmentation and tumour classification</p></div>
+  </div>
+  <div class="notice">Research demo, not for clinical use</div>
 </div>
-<div class="notice">Research demo trained on the MMOTU dataset. It is not a diagnostic tool and must not be used for patient care.</div>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
@@ -313,23 +329,36 @@ with st.sidebar:
         "- **Classification:** ResNet18, 8 categories. Validation accuracy 71.9%.\n"
         "- **Data:** MMOTU, 1,469 ultrasound images (Zhao et al., 2022)."
     )
-    st.markdown("---")
-    st.caption("Built by Betelhem Getachew Kebede")
+    st.caption("Trained on the MMOTU research dataset. Not a diagnostic tool and must not be used for patient care.")
 
-uploaded_file = st.file_uploader("Upload an ultrasound image", type=["jpg", "jpeg", "png"],
-                                 help="A 2D ovarian ultrasound image, JPG or PNG.")
+left, right = st.columns([1.65, 1], gap="large")
+with right:
+    uploaded_file = st.file_uploader("Ultrasound image", type=["jpg", "jpeg", "png"],
+                                     help="A 2D ovarian ultrasound image, JPG or PNG.")
 
 if not (seg_model and cls_model):
     st.error("The models could not be loaded. Check that the weights are in the Models folder.")
 elif uploaded_file is None:
-    st.markdown("""
-    <div class="empty">
-      <b>Upload a 2D ovarian ultrasound image to start.</b><br>
-      The app outlines the lesion, shows a close-up, and predicts one of 8 categories:
-      chocolate cyst, serous cystadenoma, teratoma, theca cell tumour, simple cyst,
-      normal ovary, mucinous cystadenoma or high-grade serous carcinoma.
-    </div>
-    """, unsafe_allow_html=True)
+    with left:
+        st.markdown("""
+        <div class="viewer empty-view"><div class="msg">
+          <b>No image loaded</b>
+          Upload a 2D ovarian ultrasound image (JPG or PNG).
+          The lesion outline and a close-up will appear here.
+        </div></div>
+        """, unsafe_allow_html=True)
+    with right:
+        st.markdown("""
+        <div class="panel"><h4>What the app returns</h4>
+          <div class="desc" style="margin-top:0">An outline of the lesion, a close-up of the largest region, and a
+          prediction across 8 categories: chocolate cyst, serous cystadenoma, teratoma, theca cell tumour,
+          simple cyst, normal ovary, mucinous cystadenoma and high-grade serous carcinoma.</div>
+        </div>
+        <div class="panel"><h4>How it works</h4>
+          <div class="desc" style="margin-top:0">A U-Net finds the lesion pixels. A separate ResNet18 classifies the
+          whole image. You can download the result as a PDF.</div>
+        </div>
+        """, unsafe_allow_html=True)
 else:
     image_bytes = uploaded_file.getvalue()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -342,24 +371,21 @@ else:
     uncertain = confidence < LOW_CONFIDENCE
     lesion_share = float(mask.mean()) * 100
 
-    # --- Images ---
-    st.markdown("#### Images")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        figure(image, "Uploaded image")
-    with c2:
-        figure(overlay, f"Predicted lesion outline (threshold {seg_threshold:.2f})")
-    with c3:
-        if crop is not None:
-            figure(crop, "Close-up of the largest lesion region")
-        else:
-            st.markdown('<div class="empty">No lesion region found at this threshold. Try lowering it in the sidebar.</div>',
-                        unsafe_allow_html=True)
+    with left:
+        t1, t2, t3 = st.tabs(["Lesion outline", "Original", "Close-up"])
+        with t1:
+            figure(overlay, f"Predicted outline, threshold {seg_threshold:.2f}")
+        with t2:
+            figure(image, uploaded_file.name)
+        with t3:
+            if crop is not None:
+                figure(crop, "Largest lesion region")
+            else:
+                st.markdown('<div class="viewer empty-view"><div class="msg"><b>No lesion region found</b>'
+                            'Try lowering the segmentation threshold in the sidebar.</div></div>',
+                            unsafe_allow_html=True)
 
-    # --- Results ---
-    st.markdown("#### Results")
-    r1, r2 = st.columns([1, 1.35], gap="medium")
-    with r1:
+    with right:
         if uncertain:
             tag = '<span class="tag tag-low">Low confidence</span>'
         elif diagnosis in MALIGNANT:
@@ -371,40 +397,34 @@ else:
         note = ("The top prediction is below 60% confidence, so treat it as uncertain."
                 if uncertain else MEDICAL_INFO.get(diagnosis, ""))
         st.markdown(f"""
-        <div class="card">
+        <div class="panel">
           <div class="label">Predicted class</div>
           <div class="class-name">{diagnosis}</div>
           {tag}
-          <div style="display:flex;gap:2.5rem;margin-top:1rem">
-            <div><div class="label">Confidence</div><div class="big">{confidence*100:.1f}%</div></div>
-            <div><div class="label">Lesion area</div><div class="big">{lesion_share:.1f}%</div></div>
+          <div class="stats">
+            <div><div class="label">Confidence</div><div class="num">{confidence*100:.1f}%</div></div>
+            <div><div class="label">Lesion area</div><div class="num">{lesion_share:.1f}%</div></div>
           </div>
           <div class="desc">{note}</div>
-          <div class="desc" style="font-size:0.8rem;color:#98a2b3">Lesion area is the share of the image inside the predicted outline. The classifier uses the whole image.</div>
+          <div class="fine">Lesion area is the share of the image inside the outline. The classifier uses the whole image.</div>
         </div>
         """, unsafe_allow_html=True)
-    with r2:
+
         order = np.argsort(probs)[::-1]
         rows = "".join(
-            f'<div class="prob{" top" if i == top_idx else ""}"><span class="name">{CLASS_NAMES[i]}</span>'
-            f'<span class="track"><span class="fill" style="width:{probs[i]*100:.1f}%;display:block"></span></span>'
+            f'<div class="prob{" top" if i == top_idx else ""}"><div class="row"><span>{CLASS_NAMES[i]}</span>'
             f'<span class="val">{probs[i]*100:.1f}%</span></div>'
+            f'<div class="track"><span class="fill" style="width:{probs[i]*100:.1f}%"></span></div></div>'
             for i in order
         )
-        st.markdown(f'<div class="card"><h4>Probability for each category</h4>{rows}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="panel"><h4>All categories</h4>{rows}</div>', unsafe_allow_html=True)
 
-    # --- Export ---
-    st.markdown("#### Export")
-    e1, e2 = st.columns([2, 1])
-    with e1:
-        notes = st.text_area("Notes to include in the PDF (optional)", height=90)
-    with e2:
+        notes = st.text_area("Notes for the PDF (optional)", height=80)
         final_status = f"Uncertain ({diagnosis}?)" if uncertain else diagnosis
         temp_img_path = "temp_scan_report.png"
         image.save(temp_img_path)
         pdf_bytes = create_pdf(final_status, confidence * 100, temp_img_path, notes)
         os.remove(temp_img_path)
-        st.markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
         st.download_button("Download PDF summary", data=pdf_bytes, file_name="ultrasound_model_output.pdf",
                            mime="application/pdf", type="primary", use_container_width=True)
 
