@@ -1,12 +1,14 @@
+# CPU-only PyTorch: the free hosting has no GPU, and the CPU build is much smaller.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
 streamlit>=1.40
-torch>=2.2
-torchvision>=0.17
 segmentation-models-pytorch>=0.3.3
 albumentations>=1.4
 opencv-python-headless>=4.9
 numpy
 pillow
-scikit-learn
-matplotlib
 fpdf==1.7.2
 gdown>=5.1
+scikit-learn
+matplotlib

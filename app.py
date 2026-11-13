@@ -330,18 +330,37 @@ with st.sidebar:
     )
 
 left, right = st.columns([1.65, 1], gap="large")
+SAMPLE_DIR = os.path.join(BASE_DIR, "assets", "samples")
+SAMPLES = {  # unmodified MMOTU validation images, see assets/samples/README.md
+    "Chocolate cyst": "chocolate_cyst.jpg",
+    "Teratoma": "teratoma.jpg",
+    "Carcinoma": "high_grade_serous_carcinoma.jpg",
+}
+
 with right:
     uploaded_file = st.file_uploader("Ultrasound image", type=["jpg", "jpeg", "png"],
                                      help="A 2D ovarian ultrasound image, JPG or PNG.")
+    sample = None
+    if uploaded_file is None:
+        sample = st.segmented_control("Or try a sample image", list(SAMPLES), default=None,
+                                      help="Images from the MMOTU validation set (Zhao et al.), labelled by experts.")
+
+if uploaded_file is not None:
+    image_bytes, image_name = uploaded_file.getvalue(), uploaded_file.name
+elif sample:
+    with open(os.path.join(SAMPLE_DIR, SAMPLES[sample]), "rb") as f:
+        image_bytes, image_name = f.read(), f"Sample: {sample.lower()} (MMOTU)"
+else:
+    image_bytes, image_name = None, None
 
 if not (seg_model and cls_model):
     st.error("The models could not be loaded. Check that the weights are in the Models folder.")
-elif uploaded_file is None:
+elif image_bytes is None:
     with left:
         st.markdown("""
         <div class="viewer empty-view"><div class="msg">
           <b>No image loaded</b>
-          Upload a 2D ovarian ultrasound image (JPG or PNG).
+          Upload a 2D ovarian ultrasound image (JPG or PNG), or pick a sample.
           The lesion outline and a close-up will appear here.
         </div></div>
         """, unsafe_allow_html=True)
@@ -358,7 +377,6 @@ elif uploaded_file is None:
         </div>
         """, unsafe_allow_html=True)
 else:
-    image_bytes = uploaded_file.getvalue()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     with st.spinner("Analysing the image ..."):
         mask, overlay, crop, probs = analyse(image_bytes, seg_threshold)
@@ -374,7 +392,7 @@ else:
         with t1:
             figure(overlay, f"Predicted outline, threshold {seg_threshold:.2f}")
         with t2:
-            figure(image, uploaded_file.name)
+            figure(image, image_name)
         with t3:
             if crop is not None:
                 figure(crop, "Largest lesion region")
