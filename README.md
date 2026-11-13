@@ -71,6 +71,12 @@ Measured with `evaluate.py` using the saved weights.
 
 **Next steps:** a held-out test split; recall-focused training for the malignant class; classifying the segmented lesion region; Grad-CAM to check what the classifier looks at.
 
+## The app
+
+Upload an ultrasound image to see the predicted lesion outline, a close-up of the lesion, the predicted category with its confidence, and the probability for every category. Results can be downloaded as a PDF summary.
+
+![App screenshot](results/app_screenshot.png)
+
 ## Run it
 
 ```bash

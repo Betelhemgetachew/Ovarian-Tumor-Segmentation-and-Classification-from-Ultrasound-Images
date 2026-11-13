@@ -1,38 +1,74 @@
+import base64
+import io
+import os
+
+import albumentations as A
+import cv2
+import gdown
+import numpy as np
+import segmentation_models_pytorch as smp
 import streamlit as st
 import torch
 import torch.nn as nn
 import torchvision.models as models
-import segmentation_models_pytorch as smp
-import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import numpy as np
-import cv2
-from PIL import Image
-import os
 from fpdf import FPDF
-import gdown
+from PIL import Image
 
 # =========================
-# Page Configuration
+# Page configuration
 # =========================
 st.set_page_config(
-    page_title="MMOTU AI Diagnostics",
-    page_icon="🩺",
+    page_title="Ovarian Ultrasound Analysis",
+    page_icon="assets/favicon.png",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto",
 )
 
 # =========================
-# Custom Styling
+# Styling (colours also set in .streamlit/config.toml)
 # =========================
 st.markdown("""
-    <style>
-    .main { background-color: #0e1117; }
-    h1 { color: #4da6ff; text-align: center; }
-    .stAlert { background-color: #262730; color: #fafafa; border: 1px solid #4da6ff; }
-    div.stButton > button { background-color: #4da6ff; color: white; border-radius: 8px; width: 100%; }
-    .diagnosis-text { font-weight: bold; font-size: 24px; padding: 10px; border-radius: 5px; }
-    </style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+html, body, [class*="css"], .stMarkdown, .stText, button, input, textarea { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+#MainMenu, footer, [data-testid="stToolbar"] { visibility: hidden; }
+.block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 1200px; }
+h1, h2, h3, h4 { letter-spacing: -0.01em; }
+
+.app-head h1 { font-size: 1.7rem; font-weight: 700; margin: 0; color: #101828; }
+.app-head p { color: #667085; margin: 0.25rem 0 0; }
+.notice { background: #fdf3e1; border: 1px solid #f1d9a7; border-left: 3px solid #b7791f; color: #7a5214;
+          border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.86rem; margin: 1rem 0 1.5rem; }
+
+.card { background: #fff; border: 1px solid #e4e7ec; border-radius: 10px; padding: 1.1rem 1.25rem;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.05); height: 100%; }
+.card h4 { margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 600; color: #101828; }
+.label { font-size: 0.8rem; font-weight: 500; color: #475467; }
+.class-name { font-size: 1.6rem; font-weight: 700; line-height: 1.25; margin: 0.2rem 0 0.4rem; color: #101828; }
+.tag { display: inline-block; border-radius: 999px; padding: 0.15rem 0.65rem; font-size: 0.78rem; font-weight: 600; }
+.tag-benign { background: #e7f4ec; color: #2f855a; }
+.tag-malignant { background: #fdeceb; color: #c0392b; }
+.tag-normal { background: #eaf1fe; color: #2563eb; }
+.tag-low { background: #fdf3e1; color: #b7791f; }
+.big { font-size: 2rem; font-weight: 700; color: #101828; font-variant-numeric: tabular-nums; }
+.desc { color: #475467; font-size: 0.92rem; margin-top: 0.75rem; line-height: 1.55; }
+
+.prob { display: grid; grid-template-columns: 12.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; margin: 0.45rem 0; font-size: 0.88rem; }
+.prob .name { color: #101828; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prob .track { background: #f2f4f7; border-radius: 99px; height: 8px; overflow: hidden; }
+.prob .fill { height: 8px; border-radius: 99px; background: #0e6e6a; }
+.prob.top .name { font-weight: 600; }
+.prob .val { text-align: right; color: #475467; font-variant-numeric: tabular-nums; }
+
+.figure img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 8px; border: 1px solid #e4e7ec; background: #000; }
+.figure .cap { font-size: 0.82rem; color: #667085; margin-top: 0.4rem; }
+.empty { border: 1px dashed #d0d5dd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; color: #475467; background: #fff; }
+.empty b { color: #101828; }
+.foot { color: #98a2b3; font-size: 0.8rem; margin-top: 3rem; border-top: 1px solid #e4e7ec; padding-top: 1rem; }
+.stDownloadButton button, .stButton button { border-radius: 8px; font-weight: 600; }
+@media (max-width: 640px) { .prob { grid-template-columns: 9rem 1fr 3rem; font-size: 0.82rem; } .class-name { font-size: 1.35rem; } .big { font-size: 1.6rem; } }
+</style>
 """, unsafe_allow_html=True)
 
 # -------- Device --------
@@ -94,7 +130,7 @@ def create_pdf(diagnosis, confidence, image_path, notes=""):
     # Results
     pdf.ln(110)
     pdf.set_font("Arial", 'B', 14)
-    pdf.cell(190, 10, txt="Analysis Results:", ln=1, align='L')
+    pdf.cell(190, 10, txt="Results", ln=1, align='L')
     
     pdf.set_font("Arial", size=12)
     pdf.cell(50, 10, txt="Predicted class:", align='L')
@@ -109,7 +145,7 @@ def create_pdf(diagnosis, confidence, image_path, notes=""):
         pdf.ln(2)
 
     pdf.set_font("Arial", size=12)
-    pdf.cell(50, 10, txt="AI Confidence:", align='L')
+    pdf.cell(50, 10, txt="Confidence:", align='L')
     pdf.cell(140, 10, txt=f"{confidence:.2f}%", ln=1, align='L')
     
     if notes:
@@ -224,109 +260,153 @@ def predict_class(pil_image):
     return probs
 
 # =========================
-# 5. UI Layout
+# 5. Helpers for the interface
 # =========================
-st.title("🩺 MMOTU: Ovarian Tumor Segmentation & Classification (Research Demo)")
-st.markdown("**Powered by U-Net Segmentation & ResNet Classification**")
-st.warning("⚠️ **Disclaimer:** This tool is for educational/research purposes only. Not for clinical diagnosis.")
+MALIGNANT = {"High-Grade Serous Carcinoma"}
+LOW_CONFIDENCE = 0.60
 
-# Sidebar
-st.sidebar.header("Configuration")
-seg_threshold = st.sidebar.slider("Sensitivity (Threshold)", 0.1, 0.9, 0.5, 0.05)
-st.sidebar.info("Adjust threshold if the red mask is too small or too messy.")
 
-# Main Logic
-uploaded_file = st.file_uploader("📂 Upload Ultrasound Image", type=["jpg", "png", "jpeg"])
+def to_data_uri(img):
+    """PIL image or RGB array -> base64 PNG data URI for inline HTML."""
+    if isinstance(img, np.ndarray):
+        img = Image.fromarray(img)
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-if uploaded_file and seg_model and cls_model:
-    image = Image.open(uploaded_file)
-    
-    st.markdown("### 1. Image Analysis")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.image(image, caption="Original Ultrasound", use_container_width=True)
 
-    with st.spinner("Analyzing tissue structure..."):
-        # Task 1
-        mask, overlay = process_segmentation(image, threshold=seg_threshold)
-        
-        with col2:
-            st.image(overlay, caption="AI Segmentation (Transparent Overlay)", use_container_width=True)
+def figure(img, caption):
+    st.markdown(f'<div class="figure"><img src="{to_data_uri(img)}" alt="{caption}"><div class="cap">{caption}</div></div>',
+                unsafe_allow_html=True)
 
-        # Task 2
-        tumor_found = np.sum(mask) > 0
-        if tumor_found:
-            cropped_view = crop_tumor_region(image, mask)
-            if cropped_view:
-                with col3:
-                    st.image(cropped_view, caption="Zoomed Region of Interest", width=250)
+
+@st.cache_data(show_spinner=False, max_entries=8)
+def analyse(image_bytes, threshold):
+    """Run segmentation and classification once per image and threshold."""
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    mask, overlay = process_segmentation(image, threshold=threshold)
+    crop = crop_tumor_region(image, mask) if mask.sum() > 0 else None
+    probs = predict_class(image)
+    return mask, overlay, crop, probs
+
+
+# =========================
+# 6. Layout
+# =========================
+st.markdown("""
+<div class="app-head">
+  <h1>Ovarian ultrasound analysis</h1>
+  <p>Lesion segmentation (U-Net) and tumour classification (ResNet18) on 2D ultrasound images.</p>
+</div>
+<div class="notice">Research demo trained on the MMOTU dataset. It is not a diagnostic tool and must not be used for patient care.</div>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### Settings")
+    seg_threshold = st.slider("Segmentation threshold", 0.1, 0.9, 0.5, 0.05,
+                              help="Lower values outline more of the image; higher values keep only confident lesion pixels.")
+    st.caption("Lower it if the outline misses part of the lesion; raise it if the outline spills into background.")
+    st.markdown("---")
+    st.markdown("### About the models")
+    st.markdown(
+        "- **Segmentation:** U-Net with a ResNet34 encoder. Validation Dice 0.85, IoU 0.77.\n"
+        "- **Classification:** ResNet18, 8 categories. Validation accuracy 71.9%.\n"
+        "- **Data:** MMOTU, 1,469 ultrasound images (Zhao et al., 2022)."
+    )
+    st.markdown("---")
+    st.caption("Built by Betelhem Getachew Kebede")
+
+uploaded_file = st.file_uploader("Upload an ultrasound image", type=["jpg", "jpeg", "png"],
+                                 help="A 2D ovarian ultrasound image, JPG or PNG.")
+
+if not (seg_model and cls_model):
+    st.error("The models could not be loaded. Check that the weights are in the Models folder.")
+elif uploaded_file is None:
+    st.markdown("""
+    <div class="empty">
+      <b>Upload a 2D ovarian ultrasound image to start.</b><br>
+      The app outlines the lesion, shows a close-up, and predicts one of 8 categories:
+      chocolate cyst, serous cystadenoma, teratoma, theca cell tumour, simple cyst,
+      normal ovary, mucinous cystadenoma or high-grade serous carcinoma.
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    image_bytes = uploaded_file.getvalue()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    with st.spinner("Analysing the image ..."):
+        mask, overlay, crop, probs = analyse(image_bytes, seg_threshold)
+
+    top_idx = int(np.argmax(probs))
+    confidence = float(probs[top_idx])
+    diagnosis = CLASS_NAMES[top_idx]
+    uncertain = confidence < LOW_CONFIDENCE
+    lesion_share = float(mask.mean()) * 100
+
+    # --- Images ---
+    st.markdown("#### Images")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        figure(image, "Uploaded image")
+    with c2:
+        figure(overlay, f"Predicted lesion outline (threshold {seg_threshold:.2f})")
+    with c3:
+        if crop is not None:
+            figure(crop, "Close-up of the largest lesion region")
         else:
-             with col3:
-                st.info("No distinct tumor region found for zooming.")
+            st.markdown('<div class="empty">No lesion region found at this threshold. Try lowering it in the sidebar.</div>',
+                        unsafe_allow_html=True)
 
-        # Task 3
-        probs = predict_class(image) 
-        top_idx = np.argmax(probs)
-        confidence = probs[top_idx]
-        diagnosis = CLASS_NAMES[top_idx]
+    # --- Results ---
+    st.markdown("#### Results")
+    r1, r2 = st.columns([1, 1.35], gap="medium")
+    with r1:
+        if uncertain:
+            tag = '<span class="tag tag-low">Low confidence</span>'
+        elif diagnosis in MALIGNANT:
+            tag = '<span class="tag tag-malignant">Malignant category</span>'
+        elif diagnosis == "Normal Ovary":
+            tag = '<span class="tag tag-normal">No tumour</span>'
+        else:
+            tag = '<span class="tag tag-benign">Benign category</span>'
+        note = ("The top prediction is below 60% confidence, so treat it as uncertain."
+                if uncertain else MEDICAL_INFO.get(diagnosis, ""))
+        st.markdown(f"""
+        <div class="card">
+          <div class="label">Predicted class</div>
+          <div class="class-name">{diagnosis}</div>
+          {tag}
+          <div style="display:flex;gap:2.5rem;margin-top:1rem">
+            <div><div class="label">Confidence</div><div class="big">{confidence*100:.1f}%</div></div>
+            <div><div class="label">Lesion area</div><div class="big">{lesion_share:.1f}%</div></div>
+          </div>
+          <div class="desc">{note}</div>
+          <div class="desc" style="font-size:0.8rem;color:#98a2b3">Lesion area is the share of the image inside the predicted outline. The classifier uses the whole image.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with r2:
+        order = np.argsort(probs)[::-1]
+        rows = "".join(
+            f'<div class="prob{" top" if i == top_idx else ""}"><span class="name">{CLASS_NAMES[i]}</span>'
+            f'<span class="track"><span class="fill" style="width:{probs[i]*100:.1f}%;display:block"></span></span>'
+            f'<span class="val">{probs[i]*100:.1f}%</span></div>'
+            for i in order
+        )
+        st.markdown(f'<div class="card"><h4>Probability for each category</h4>{rows}</div>', unsafe_allow_html=True)
 
-        # --- Report Section ---
-        st.markdown("---")
-        st.markdown("### 2. Model Prediction")
-        
-        is_uncertain = confidence < 0.60
-        
-        c1, c2 = st.columns([1, 1.5])
-        
-        with c1:
-            st.markdown(f"**Predicted class:**")
-            
-            if is_uncertain:
-                st.warning(f"⚠️ **Low confidence**\n\nThe model's top prediction is '{diagnosis}', but confidence is low ({confidence*100:.1f}%).")
-                final_status = f"Uncertain ({diagnosis}?)"
-            else:
-                is_malignant = "Carcinoma" in diagnosis
-                color = "red" if is_malignant else "#28a745"
-                st.markdown(f"<h2 style='color: {color};'>{diagnosis}</h2>", unsafe_allow_html=True)
-                st.metric("Confidence Score", f"{confidence*100:.2f}%")
-                
-                definition = MEDICAL_INFO.get(diagnosis, "No detailed definition available.")
-                st.info(f"ℹ️ **What is this?**\n\n{definition}")
+    # --- Export ---
+    st.markdown("#### Export")
+    e1, e2 = st.columns([2, 1])
+    with e1:
+        notes = st.text_area("Notes to include in the PDF (optional)", height=90)
+    with e2:
+        final_status = f"Uncertain ({diagnosis}?)" if uncertain else diagnosis
+        temp_img_path = "temp_scan_report.png"
+        image.save(temp_img_path)
+        pdf_bytes = create_pdf(final_status, confidence * 100, temp_img_path, notes)
+        os.remove(temp_img_path)
+        st.markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
+        st.download_button("Download PDF summary", data=pdf_bytes, file_name="ultrasound_model_output.pdf",
+                           mime="application/pdf", type="primary", use_container_width=True)
 
-                final_status = diagnosis
-
-            if tumor_found:
-                st.caption("Segmentation model found a lesion region (shown above). The classifier uses the full image.")
-            else:
-                st.caption("Segmentation model did not find a lesion region at this threshold.")
-
-            # PDF Download
-            st.markdown("---")
-            st.markdown("#### 📄 Export PDF")
-            notes = st.text_area("Notes (optional)", height=70)
-            
-            if st.button("Generate PDF Report"):
-                temp_img_path = "temp_scan_report.png"
-                image.save(temp_img_path)
-                
-                pdf_bytes = create_pdf(final_status, confidence*100, temp_img_path, notes)
-                
-                st.download_button(
-                    label="⬇️ Click to Download PDF",
-                    data=pdf_bytes,
-                    file_name="MMOTU_Model_Output.pdf",
-                    mime="application/pdf"
-                )
-                
-                if os.path.exists(temp_img_path):
-                    os.remove(temp_img_path)
-
-        with c2:
-            st.markdown("**Probability Distribution:**")
-            chart_data = {name: float(p) for name, p in zip(CLASS_NAMES, probs)}
-            st.bar_chart(chart_data)
-
-# Footer
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: gray;'>Developed by Betelhem Getachew | MMOTU Research Project 2025</div>", unsafe_allow_html=True)
+st.markdown('<div class="foot">Built by Betelhem Getachew Kebede. '
+            'Data: MMOTU dataset (Zhao et al., 2022).</div>', unsafe_allow_html=True)
