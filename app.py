@@ -42,7 +42,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # 1. Configuration & Paths
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(BASE_DIR, "models")
+MODEL_DIR = os.path.join(BASE_DIR, "Models")  # weights are in the repo; downloaded from Drive only if missing
 
 # Ensure models folder exists
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -55,10 +55,9 @@ SEG_FILE_ID = '1JL8mDDxJ81dhF9s3sSV2JOxlZglsSCaF'
 CLS_FILE_ID = '1kLNPFI1nKd3cN-P57HX7tgOv3kZnb7Sy'
 # -----------------------------
 
-CLASS_NAMES = [
-    "Normal Ovary", "Simple Cyst", "Chocolate Cyst", 
-    "Serous Cystadenoma", "Mucinous Cystadenoma", 
-    "Teratoma", "Theca Cell Tumor", "High-Grade Serous Carcinoma"
+CLASS_NAMES = [  # order must match the MMOTU label IDs 0-7 in train_cls.txt / val_cls.txt
+    "Chocolate Cyst", "Serous Cystadenoma", "Teratoma", "Theca Cell Tumor",
+    "Simple Cyst", "Normal Ovary", "Mucinous Cystadenoma", "High-Grade Serous Carcinoma"
 ]
 NUM_CLASSES = len(CLASS_NAMES)
 
@@ -69,7 +68,7 @@ MEDICAL_INFO = {
     "Chocolate Cyst": "Endometrioma. A cyst filled with old blood, often linked to endometriosis.",
     "Serous Cystadenoma": "A benign tumor filled with thin, watery fluid.",
     "Mucinous Cystadenoma": "A benign tumor filled with a gelatinous, mucous-type fluid.",
-    "Teratoma": "A germ cell tumor that may contain hair, teeth, or bone tissue.",
+    "Teratoma": "A germ cell tumor that may contain hair, teeth, or bone tissue. Mature cystic teratomas are usually benign.",
     "Theca Cell Tumor": "A rare, usually benign solid tumor of the ovary.",
     "High-Grade Serous Carcinoma": "A type of ovarian cancer that requires immediate clinical attention."
 }
@@ -83,7 +82,7 @@ def create_pdf(diagnosis, confidence, image_path, notes=""):
     
     # Title
     pdf.set_font("Arial", 'B', 20)
-    pdf.cell(190, 15, txt="MMOTU AI Diagnostic Report", ln=1, align='C')
+    pdf.cell(190, 15, txt="MMOTU Research Demo: Model Output", ln=1, align='C')
     pdf.set_font("Arial", size=10)
     pdf.cell(190, 10, txt="Automated Ultrasound Analysis", ln=1, align='C')
     pdf.line(10, 35, 200, 35)
@@ -98,7 +97,7 @@ def create_pdf(diagnosis, confidence, image_path, notes=""):
     pdf.cell(190, 10, txt="Analysis Results:", ln=1, align='L')
     
     pdf.set_font("Arial", size=12)
-    pdf.cell(50, 10, txt="Primary Diagnosis:", align='L')
+    pdf.cell(50, 10, txt="Predicted class:", align='L')
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(140, 10, txt=f"{diagnosis}", ln=1, align='L')
     
@@ -116,7 +115,7 @@ def create_pdf(diagnosis, confidence, image_path, notes=""):
     if notes:
         pdf.ln(5)
         pdf.set_font("Arial", 'B', 12)
-        pdf.cell(190, 10, txt="Physician Notes:", ln=1, align='L')
+        pdf.cell(190, 10, txt="Notes:", ln=1, align='L')
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(190, 10, txt=notes)
     
@@ -227,7 +226,7 @@ def predict_class(pil_image):
 # =========================
 # 5. UI Layout
 # =========================
-st.title("🩺 MMOTU: Intelligent Ovarian Tumor Diagnosis")
+st.title("🩺 MMOTU: Ovarian Tumor Segmentation & Classification (Research Demo)")
 st.markdown("**Powered by U-Net Segmentation & ResNet Classification**")
 st.warning("⚠️ **Disclaimer:** This tool is for educational/research purposes only. Not for clinical diagnosis.")
 
@@ -274,20 +273,20 @@ if uploaded_file and seg_model and cls_model:
 
         # --- Report Section ---
         st.markdown("---")
-        st.markdown("### 2. Diagnosis Report")
+        st.markdown("### 2. Model Prediction")
         
         is_uncertain = confidence < 0.60
         
         c1, c2 = st.columns([1, 1.5])
         
         with c1:
-            st.markdown(f"**Primary Diagnosis:**")
+            st.markdown(f"**Predicted class:**")
             
             if is_uncertain:
-                st.warning(f"⚠️ **Inconclusive**\n\nThe AI detected '{diagnosis}' but confidence is low ({confidence*100:.1f}%). Clinical review required.")
+                st.warning(f"⚠️ **Low confidence**\n\nThe model's top prediction is '{diagnosis}', but confidence is low ({confidence*100:.1f}%).")
                 final_status = f"Uncertain ({diagnosis}?)"
             else:
-                is_malignant = "Carcinoma" in diagnosis or "Teratoma" in diagnosis
+                is_malignant = "Carcinoma" in diagnosis
                 color = "red" if is_malignant else "#28a745"
                 st.markdown(f"<h2 style='color: {color};'>{diagnosis}</h2>", unsafe_allow_html=True)
                 st.metric("Confidence Score", f"{confidence*100:.2f}%")
@@ -298,14 +297,14 @@ if uploaded_file and seg_model and cls_model:
                 final_status = diagnosis
 
             if tumor_found:
-                st.caption("✅ Tumor location verified by Segmentation Model.")
+                st.caption("Segmentation model found a lesion region (shown above). The classifier uses the full image.")
             else:
-                st.caption("⚠️ Segmentation Model did not highlight a region.")
+                st.caption("Segmentation model did not find a lesion region at this threshold.")
 
             # PDF Download
             st.markdown("---")
-            st.markdown("#### 📄 Export Report")
-            notes = st.text_area("Physician Notes (Optional)", height=70)
+            st.markdown("#### 📄 Export PDF")
+            notes = st.text_area("Notes (optional)", height=70)
             
             if st.button("Generate PDF Report"):
                 temp_img_path = "temp_scan_report.png"
@@ -316,7 +315,7 @@ if uploaded_file and seg_model and cls_model:
                 st.download_button(
                     label="⬇️ Click to Download PDF",
                     data=pdf_bytes,
-                    file_name="MMOTU_Patient_Report.pdf",
+                    file_name="MMOTU_Model_Output.pdf",
                     mime="application/pdf"
                 )
                 
