@@ -313,7 +313,6 @@ st.markdown("""
     <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M4 30 A19 19 0 0 1 30 30" fill="none" stroke="#d98bb0" stroke-width="2"/><path d="M8 30 A13 13 0 0 1 26 30" fill="none" stroke="#d98bb0" stroke-width="2" opacity=".6"/><path d="M12 30 A7 7 0 0 1 22 30" fill="none" stroke="#d98bb0" stroke-width="2" opacity=".35"/><path d="M17 30 L5 6 M17 30 L29 6" stroke="#2b3848" stroke-width="1.5"/></svg>
     <div><h1>Ovarian ultrasound analysis</h1><p>Lesion segmentation and tumour classification</p></div>
   </div>
-  <div class="notice">Research demo, not for clinical use</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -329,7 +328,6 @@ with st.sidebar:
         "- **Classification:** ResNet18, 8 categories. Validation accuracy 71.9%.\n"
         "- **Data:** MMOTU, 1,469 ultrasound images (Zhao et al., 2022)."
     )
-    st.caption("Trained on the MMOTU research dataset. Not a diagnostic tool and must not be used for patient care.")
 
 left, right = st.columns([1.65, 1], gap="large")
 with right:
